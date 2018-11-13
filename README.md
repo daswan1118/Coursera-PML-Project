@@ -1,4 +1,4 @@
-Please view https://daswan1118.github.io/Coursera_PML_Project/ for the full documentation
+Please view https://daswan1118.github.io/Coursera_PML_Project/ for the html documentation
 
 # Practical-Machine-Learning-Course-Project
 Predictng 
