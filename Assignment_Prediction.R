@@ -1,81 +1,89 @@
+
+#######################################################################
+########## Coursera Pratical Machine Learning Course Project ##########
+#######################################################################
+
+### PROJECT DESCRIPTION: 
+### Use data gathered from accelerometers on the belt, forearm, arm, and dumbell of 6 participants.
+### The goal of the project is to predict the manner (classe) in which people they exercise. 
+
+
 library(caret)
-library(Metrics)
-library(neuralnet)
+library(pROC)
+library(ggplot2)
 
 
-# More info on caret: https://topepo.github.io/caret/index.html 
+# 1. Get Data from CSV
+# The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har.
+train <- read.csv("C:\\Users\\Swan\\Desktop\\Codes\\pml-training.csv")
+score <- read.csv("C:\\Users\\Swan\\Desktop\\Codes\\pml-testing.csv")
 
 
-# 1. Get Data
-train <- read.csv("~\\Housing Kaggle\\Data\\train.csv")
-score <- read.csv("~\\\Housing Kaggle\\Data\\test.csv")
-
-
-# 2. Split - using Caret
+# 2. Split Train-Test 60:40 - using Caret
 set.seed(695)
-inTrain <- createDataPartition(y=train$SalePrice, p=0.70, list=FALSE)
+inTrain <- createDataPartition(y=train$classe, p=0.60, list=FALSE)
 training <- train[inTrain,]
 testing <- train[-inTrain,]
 
 
 # 3. Understand data
-# a. basic tools
-head(training,6)
-str(training)
-colnames(training)
-summary(training)
-
-# b. Feature Plot - caret
-featurePlot(x=training[,c(20,42,52)], y=training$SalePrice, plot="pairs")
-featurePlot(x=training[,c(20,18,52)], y=training$SalePrice, plot="scatter",
-            type = c("p", "smooth"), layout = c(3,1))
+# # a. basic tools
+# head(training,6)
+# str(training)
+# colnames(training)
+# summary(training)
+# ggplot(data.frame(training$classe), aes(x=training$classe)) +
+#   geom_bar()
+# 
+# # b. Feature Plot - caret
+# featurePlot(x=training[,c(20,42,52)], y=training$classe, plot="pairs")
 
 
 # 4. Preprocess
-# Remove target variable
-train_tv <- log(training$SalePrice + 1)
-training <- training[,-81]
-test_tv <- log(testing$SalePrice + 1)
-testing <- testing[,-81]
+# Remove target & problem ID
+train_tv <- training$classe
+training <- training[,-160]
+test_tv <- testing$classe
+testing <- testing[,-160]
+score <- score[,-160]
 
-# a. convert factor variables to indicator (1,0) variables  
-dummies <- dummyVars(~., data=training)
-train_df <- as.data.frame(predict(dummies, newdata=training))
-test_df <- as.data.frame(predict(dummies, newdata=testing))
-score_df <- as.data.frame(predict(dummies, newdata=score))
+# Choose variables to Remove
+variables <- c('user_name', 'num_window', 'roll_belt', 'pitch_belt', 'yaw_belt', 'total_accel_belt',
+               'gyros_belt_x', 'gyros_belt_y', 'gyros_belt_z', 'accel_belt_x', 'accel_belt_y', 'accel_belt_z',
+               'magnet_belt_x', 'magnet_belt_y', 'magnet_belt_z', 'roll_arm', 'pitch_arm', 'yaw_arm',
+               'total_accel_arm', 'gyros_arm_x', 'gyros_arm_y', 'gyros_arm_z', 'accel_arm_x', 'accel_arm_y',
+               'accel_arm_z', 'magnet_arm_x', 'magnet_arm_y', 'magnet_arm_z', 'roll_dumbbell', 'pitch_dumbbell',
+               'yaw_dumbbell', 'total_accel_dumbbell', 'gyros_dumbbell_x', 'gyros_dumbbell_y', 'gyros_dumbbell_z',
+               'accel_dumbbell_x', 'accel_dumbbell_y', 'accel_dumbbell_z', 'magnet_dumbbell_x', 'magnet_dumbbell_y',
+               'magnet_dumbbell_z', 'roll_forearm', 'pitch_forearm', 'yaw_forearm', 'total_accel_forearm',
+               'gyros_forearm_x', 'gyros_forearm_y', 'gyros_forearm_z', 'accel_forearm_x', 'accel_forearm_y',
+               'accel_forearm_z', 'magnet_forearm_x', 'magnet_forearm_y', 'magnet_forearm_z')
+train_df <- training[,variables]
+test_df <- testing[,variables]
+score_df <- score[,variables]
 
-# Choose Variables
-variables <- c('OverallQual','GarageArea','X1stFlrSF','FullBath','TotRmsAbvGrd',
-               'Fireplaces','CentralAir.Y','BsmtFinSF1','HalfBath','YearRemodAdd',
-               'LotArea','BsmtQual.Ex','MSZoning.RL','KitchenQual.Gd','BedroomAbvGr',
-               'OverallCond','BsmtExposure.Gd','BldgType.1Fam','BsmtFullBath',
-               'KitchenQual.Ex','BsmtQual.Gd','GarageYrBlt','LotFrontage','BsmtFinType1.GLQ',
-               'ExterQual.Gd','PavedDrive.N','OpenPorchSF','GarageFinish.Unf','HeatingQC.TA',
-               'MasVnrArea','LandSlope.Gtl','BsmtExposure.No','BsmtUnfSF','HeatingQC.Gd',
-               'GarageType.Attchd','LotShape.IR1','BsmtFinType1.Unf','GarageFinish.RFn',
-               'Neighborhood.Somerst','WoodDeckSF','SaleCondition.Abnorml','LandContour.Lvl',
-               'RoofStyle.Gable','Exterior2nd.VinylSd','HeatingQC.Ex','Condition1.Norm',
-               'Neighborhood.NAmes','Alley.Pave','HouseStyle.1Story','SaleType.WD')
-train_df <- train_df[,variables]
-test_df <- test_df[,variables]
-score_df <- score_df[,variables]
+# a. Zero Variance
+nzv <- nearZeroVar(score, saveMetrics=TRUE)
+nzv[nzv$nzv,][1:10,]
+nzv <- nearZeroVar(score)
+train_df <- train_df[, -nzv]
+test_df <- test_df[, -nzv]
+score_df <- score_df[, -nzv]
 
-# b. Zero Variance
-# nzv <- nearZeroVar(train_df, saveMetrics=TRUE)
-# nzv[nzv$nzv,][1:10,]
-# nzv <- nearZeroVar(train_df)
-# train_df <- train_df[, -nzv]
-# test_df <- test_df[, -nzv]
-# score_df <- score_df[, -nzv]
+# b. convert factor variables to indicator (1,0) variables  
+dummies <- dummyVars(~., data=train_df)
+train_df <- as.data.frame(predict(dummies, newdata=train_df))
+test_df <- as.data.frame(predict(dummies, newdata=test_df))
+score_df <- as.data.frame(predict(dummies, newdata=score_df))
 
 # c. Correlated Predictors
-# descrCor <-  cor(train_df, use="pairwise.complete.obs")
-# print(descrCor)
-# descrCor[is.na(descrCor)] <- 0
-# highlyCorDescr <- findCorrelation(descrCor, cutoff = .75)
-# train_df <- train_df[,-highlyCorDescr]
-# test_df <- test_df[,-highlyCorDescr]
-# score_df <- score_df[,-highlyCorDescr]
+descrCor <-  cor(train_df, use="pairwise.complete.obs")
+descrCor[is.na(descrCor)] <- 0
+highlyCorDescr <- findCorrelation(descrCor, cutoff = .90)
+highlyCorDescr
+train_df <- train_df[,-highlyCorDescr]
+test_df <- test_df[,-highlyCorDescr]
+score_df <- score_df[,-highlyCorDescr]
 
 # d. Standardizing - Imputing Data
 preObj <- preProcess(train_df, method = "medianImpute")
@@ -84,96 +92,19 @@ test_df <- predict(preObj,test_df)
 score_df <- predict(preObj,score_df)
 
 
-
 # 5. Model training
-#a. GLM
-fitControl <- trainControl(method = "cv", number = 3,
-                           verboseIter = TRUE, returnResamp = "all")
-set.seed(695)
-test_reg_cv_model <- train(train_df, train_tv, 
-                           method = "glm", 
-                           trControl = fitControl,
-                           preProc = c("center", "scale"))
-test_reg_imp <- varImp(test_reg_cv_model); test_reg_imp; plot(test_reg_imp) 
-test_reg_pred <- predict(test_reg_cv_model, test_df)
-rmse(test_tv, test_reg_pred)
-
-## submission
-score$SalePrice_glm <- exp(predict(test_reg_cv_model, score_df))+1
-submission <- score[,c("Id","SalePrice")]
-write.csv(submission,'C:\\Users\\kk82\\Desktop\\Housing Kaggle\\Data\\submission.csv', row.names=FALSE)
-
-
-#b. Random Forest
-tunegrid <- expand.grid(.mtry=10)
-fitControl <- trainControl(method = "cv", number = 3,
-                           verboseIter = TRUE, returnResamp = "all")  
+# a. Fit Random Forest model
+fitcontrol <- fitControl <- trainControl(method = 'cv', number = 3, verbose = TRUE)
+tunegrid <- expand.grid(.mtry=20)
 set.seed(695)
 rrfFit <- train(train_df, train_tv, method = "rf", trControl = fitControl,
-                preProc = c("center", "scale"), ntree = 200, tuneGrid=tunegrid,
-                importance = TRUE, verbose = TRUE)
-test_reg_imp_rf <- varImp(rrfFit, scale = FALSE); test_reg_imp; plot(test_reg_imp)
-top_var <- rownames(data.frame(test_reg_imp[1]))[order(data.frame(test_reg_imp[1])$Overall, 
-                                                       decreasing=TRUE)[1:35]]
-test_reg_pred <- predict(rrfFit, test_df)
-rmse(test_tv, test_reg_pred)    
+                ntree = 150, tuneGrid=tunegrid, importance = TRUE)
+test_imp_rf <- varImp(rrfFit, scale = FALSE); test_imp_rf[[1]]["A"]; plot(test_imp_rf)
 
-## submission
-score$SalePrice_rf <- exp(predict(rrfFit, score_df))+1
-score$SalePrice <- 0.3*score$SalePrice_rf + 0.7*score$SalePrice_glm
-submission <- score[,c("Id","SalePrice")]
-write.csv(submission,'C:\\Users\\kk82\\Desktop\\Housing Kaggle\\Data\\submission.csv', row.names=FALSE)
+# b. Predict on test set
+test_pred <- predict(rrfFit, test_df)
+confusionMatrix(test_pred, test_tv)
 
-#b1. Random Forest - cforest
-fitControl <- trainControl(method = "cv", number = 3,
-                           verboseIter = TRUE, returnResamp = "all")
-set.seed(695)
-rrfFit <- train(train_df, train_tv, method = "cforest", trControl = fitControl,
-                preProc = c("center", "scale"), controls = party::cforest_unbiased(ntree = 20))
-test_reg_imp <- varImp(rrfFit, scale = FALSE); test_reg_imp; plot(test_reg_imp)
-top_var <- rownames(data.frame(test_reg_imp[1]))[order(data.frame(test_reg_imp[1])$Overall,
-                                                       decreasing=TRUE)[1:50]]
-test_reg_pred <- predict(rrfFit, test_df)
-rmse(test_tv, test_reg_pred)
-
-# ## submission
-# score$SalePrice <- exp(predict(rrfFit, score_df))+1
-# submission <- score[,c("Id","SalePrice")]
-# write.csv(submission,'C:\\Users\\kk82\\Desktop\\Housing Kaggle\\Data\\submission.csv', row.names=FALSE)
-
-
-#c. Neural Network - nnet caret
-# nnetFit <- train(train_df, train_tv, method = "nnet", maxit = 100,
-#                  trControl = fitControl,preProc = c("center", "scale"),
-#                  trace = FALSE, linout = TRUE, verbose = TRUE)    
-# test_reg_imp <- varImp(nnetFit); test_reg_imp; plot(test_reg_imp)
-# test_reg_pred <- predict(nnetFit, test_df)
-# rmse(test_tv, test_reg_pred)       
-
-
-#d. XG Boost
-fitControl <- trainControl(method = "cv", number = 3, 
-                           verboseIter = TRUE, returnResamp = "all")  
-xgbGrid <- expand.grid(nrounds = c(100),
-                       max_depth = c(5),
-                       eta = c(.4),
-                       gamma = c(0,1),
-                       colsample_bytree = c(1.0),
-                       min_child_weight = c(0.5),
-                       subsample = c(1))
-set.seed(695)
-xgbFit <- train(train_df, train_tv, method = "xgbTree", trControl = fitControl,
-                preProc = c("center", "scale"), tuneGrid = xgbGrid,
-                importance = TRUE, verbose = TRUE)
-test_reg_imp <- varImp(xgbFit, scale = FALSE); test_reg_imp; plot(test_reg_imp)
-top_var <- rownames(data.frame(test_reg_imp[1]))[order(data.frame(test_reg_imp[1])$Overall, 
-                                                       decreasing=TRUE)[1:20]]
-test_reg_pred <- predict(xgbFit, test_df)
-rmse(test_tv, test_reg_pred)    
-
-#submission
-score$SalePrice <- exp(predict(xgbFit, score_df))+1
-submission <- score[,c("Id","SalePrice")]
-write.csv(submission,'submission.csv', row.names=FALSE)
-
-
+# c. Predict on score set
+score$classe_pred <- predict(rrfFit, score_df)
+score[,c("X","classe_pred")]
