@@ -1,10 +1,7 @@
-Please view https://daswan1118.github.io/Coursera_PML_Project/ for the html documentation
-
 # Practical-Machine-Learning-Course-Project
 Devices such as Jawbone Up, Nike FuelBand, and Fitbit enable collection of a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, I used data gathered from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. The goal of the project is to predict the manner (classe) in which people they exercise. 
 
 The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har.
-
 
 ***
 
@@ -29,24 +26,118 @@ training <- train[inTrain,]
 testing <- train[-inTrain,]
 ```
 
+
 ### 2. Understand Data & Feature Selection
 
+Run basic data analysis functions such as `str` and `colnames` to understand data better.
 
+```{r, results='hide'}
+head(training,6)
+str(training)
+colnames(training)
+summary(training)
+```
 
+Observe target variable distribution with `ggplot`.
 
-Used feature plots to understand variables better
+```{r}
+ggplot(data.frame(training$classe), aes(x=training$classe)) +
+  geom_bar()
+```
+
+Run feature plots to how variables effect class.
 ```{r}
 featurePlot(x=training[,c(2,8,160)], y=training$classe, plot="pairs")
 ```
 
+Now remove the target variables classe to prepare the data for feature extraction and preprocessing.
+```{r}
+train_tv <- training$classe
+training <- training[,-160]
+test_tv <- testing$classe
+testing <- testing[,-160]
+score <- score[,-160]
+```
+
+I noticed that there were several variables with NAs in the score set. Since those variables will not be predictive, I removed them from the data sets.
+```{r}
+training <- training[, colSums(is.na(score)) != nrow(score)]
+testing <- testing[, colSums(is.na(score)) != nrow(score)]
+score <- score[, colSums(is.na(score)) != nrow(score)]
+```
+
+Then I removed index `X` and time variables `raw_timestamp_part_1`, `raw_timestamp_part_1`, and `cvtd_timestamp`.
+```{r}
+variables <- c('X', 'raw_timestamp_part_1', 'raw_timestamp_part_2', 'cvtd_timestamp')
+train_df <- training[,!(names(training) %in% variables)]
+test_df <- testing[,!(names(testing) %in% variables)]
+score_df <- score[,!(names(score) %in% variables)]
+```
 
 
 ### 3. Pre-processing
-- Convert all categorical to numeric
-- Replacing all NAs
+Removed zero variance columns. The only zero variance column was `new window`.
+```{r}
+nzv <- nearZeroVar(train_df, saveMetrics=TRUE)
+nzv[nzv$nzv,][1:3,]
+nzv <- nearZeroVar(train_df)
+train_df <- train_df[, -nzv]
+test_df <- test_df[, -nzv]
+score_df <- score_df[, -nzv]
+```
+
+Then convert all factor variables using one-hot coding method from caret using `dummyVars`.
+```{r}
+dummies <- dummyVars(~., data=train_df)
+train_df <- as.data.frame(predict(dummies, newdata=train_df))
+test_df <- as.data.frame(predict(dummies, newdata=test_df))
+score_df <- as.data.frame(predict(dummies, newdata=score_df))
+```
+
+Remove correlated predictors using `cor` then `findCorrelation` from caret. 
+```{r}
+descrCor <-  cor(train_df, use="pairwise.complete.obs")
+descrCor[is.na(descrCor)] <- 0
+highlyCorDescr <- findCorrelation(descrCor, cutoff = .90)
+highlyCorDescr
+train_df <- train_df[,-highlyCorDescr]
+test_df <- test_df[,-highlyCorDescr]
+score_df <- score_df[,-highlyCorDescr]
+```
+
+Lastly, replace all NA values using medianImpute.
+```{r}
+preObj <- preProcess(train_df, method = "medianImpute")
+train_df <- predict(preObj,train_df)
+test_df <- predict(preObj,test_df)
+score_df <- predict(preObj,score_df)
+```
 
 
-### 3. Model Selection
-- GLM (Generalized Linear Model)
-- Random Forest
-- GBM (Gradiant Boosting Model)
+### 4. Model Training
+I fit a random forest model using caret's `train` function and `rf` method. I used a 3 fold cross validation to improve accuracy and reduce variance. Addtionally, I used `mtry = 20` and `ntree = 150` as the parameters to optimize the accuracy. 
+
+```{r message='hide'}
+fitcontrol <- fitControl <- trainControl(method = 'cv', number = 3)
+tunegrid <- expand.grid(.mtry=20)
+set.seed(695)
+rrfFit <- train(train_df, train_tv, method = "rf", trControl = fitControl, ntree = 150, tuneGrid=tunegrid, importance = TRUE)
+rrfFit
+```
+
+Then I observed the variable importance using varImp function.
+```{r}
+test_imp_rf <- varImp(rrfFit, scale = FALSE); test_imp_rf[[1]]["A"]
+```
+
+To evaluate how my model is performing, I predicted on the test set and saw that I had a 0.9977 accuracy with 0.0023 out of sample error.
+```{r}
+test_pred <- predict(rrfFit, test_df)
+confusionMatrix(test_pred, test_tv)
+```
+
+Lastly, I used the model to predict on the score set and submitted the results through Coursera's quiz. 
+```{r}
+score$classe_pred <- predict(rrfFit, score_df)
+score[,c("X","classe_pred")]
+```

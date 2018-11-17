@@ -91,7 +91,7 @@ test_df <- predict(preObj,test_df)
 score_df <- predict(preObj,score_df)
 
 
-## 5. Model training
+## 4. Model training
 
 # a. Fit Random Forest model
 fitcontrol <- fitControl <- trainControl(method = 'cv', number = 3, verbose = TRUE)
