@@ -6,66 +6,65 @@
 ### PROJECT DESCRIPTION: 
 ### Use data gathered from accelerometers on the belt, forearm, arm, and dumbell of 6 participants.
 ### The goal of the project is to predict the manner (classe) in which people they exercise. 
-
+### The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har.
 
 library(caret)
 library(pROC)
 library(ggplot2)
 
 
-# 1. Get Data from CSV
-# The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har.
+# 1. Get Data from CSV & Split Data
+
+# a. Get data
 train <- read.csv("C:\\Users\\Swan\\Desktop\\Codes\\pml-training.csv")
 score <- read.csv("C:\\Users\\Swan\\Desktop\\Codes\\pml-testing.csv")
 
-
-# 2. Split Train-Test 60:40 - using Caret
+# b. Split data into 60:40
 set.seed(695)
 inTrain <- createDataPartition(y=train$classe, p=0.60, list=FALSE)
 training <- train[inTrain,]
 testing <- train[-inTrain,]
 
 
-# 3. Understand data
-# # a. basic tools
-# head(training,6)
-# str(training)
-# colnames(training)
-# summary(training)
-# ggplot(data.frame(training$classe), aes(x=training$classe)) +
-#   geom_bar()
-# 
-# # b. Feature Plot - caret
-# featurePlot(x=training[,c(20,42,52)], y=training$classe, plot="pairs")
+# 2. Understand Data & Feature Selection
 
+# a. Basic tools
+head(training,6)
+str(training)
+colnames(training)
+summary(training)
+ggplot(data.frame(training$classe), aes(x=training$classe)) +
+  geom_bar()
 
-# 4. Preprocess
-# Remove target & problem ID
+# b. Feature Plot - caret
+featurePlot(x=training[,c(2,8,160)], y=training$classe, plot="pairs")
+
+# c. Remove target & problem ID
 train_tv <- training$classe
 training <- training[,-160]
 test_tv <- testing$classe
 testing <- testing[,-160]
 score <- score[,-160]
 
-# Choose variables to Remove
-variables <- c('user_name', 'num_window', 'roll_belt', 'pitch_belt', 'yaw_belt', 'total_accel_belt',
-               'gyros_belt_x', 'gyros_belt_y', 'gyros_belt_z', 'accel_belt_x', 'accel_belt_y', 'accel_belt_z',
-               'magnet_belt_x', 'magnet_belt_y', 'magnet_belt_z', 'roll_arm', 'pitch_arm', 'yaw_arm',
-               'total_accel_arm', 'gyros_arm_x', 'gyros_arm_y', 'gyros_arm_z', 'accel_arm_x', 'accel_arm_y',
-               'accel_arm_z', 'magnet_arm_x', 'magnet_arm_y', 'magnet_arm_z', 'roll_dumbbell', 'pitch_dumbbell',
-               'yaw_dumbbell', 'total_accel_dumbbell', 'gyros_dumbbell_x', 'gyros_dumbbell_y', 'gyros_dumbbell_z',
-               'accel_dumbbell_x', 'accel_dumbbell_y', 'accel_dumbbell_z', 'magnet_dumbbell_x', 'magnet_dumbbell_y',
-               'magnet_dumbbell_z', 'roll_forearm', 'pitch_forearm', 'yaw_forearm', 'total_accel_forearm',
-               'gyros_forearm_x', 'gyros_forearm_y', 'gyros_forearm_z', 'accel_forearm_x', 'accel_forearm_y',
-               'accel_forearm_z', 'magnet_forearm_x', 'magnet_forearm_y', 'magnet_forearm_z')
-train_df <- training[,variables]
-test_df <- testing[,variables]
-score_df <- score[,variables]
+# d. Remove columns with all NA in score
+training <- training[, colSums(is.na(score)) != nrow(score)]
+testing <- testing[, colSums(is.na(score)) != nrow(score)]
+score <- score[, colSums(is.na(score)) != nrow(score)]
+colnames(training)
+
+# d. Choose variables to removed
+variables <- c('X', 'raw_timestamp_part_1', 'raw_timestamp_part_2', 'cvtd_timestamp')
+train_df <- training[,!(names(training) %in% variables)]
+test_df <- testing[,!(names(testing) %in% variables)]
+score_df <- score[,!(names(score) %in% variables)]
+
+
+# 3. Preprocess
 
 # a. Zero Variance
-nzv <- nearZeroVar(score, saveMetrics=TRUE)
+nzv <- nearZeroVar(train_df, saveMetrics=TRUE)
 nzv[nzv$nzv,][1:10,]
-nzv <- nearZeroVar(score)
+nzv <- nearZeroVar(train_df)
 train_df <- train_df[, -nzv]
 test_df <- test_df[, -nzv]
 score_df <- score_df[, -nzv]
