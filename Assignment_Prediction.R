@@ -13,7 +13,7 @@ library(pROC)
 library(ggplot2)
 
 
-# 1. Get Data from CSV & Split Data
+## 1. Get Data from CSV & Split Data
 
 # a. Get data
 train <- read.csv("C:\\Users\\Swan\\Desktop\\Codes\\pml-training.csv")
@@ -26,7 +26,7 @@ training <- train[inTrain,]
 testing <- train[-inTrain,]
 
 
-# 2. Understand Data & Feature Selection
+## 2. Understand Data & Feature Selection
 
 # a. Basic tools
 head(training,6)
@@ -52,14 +52,14 @@ testing <- testing[, colSums(is.na(score)) != nrow(score)]
 score <- score[, colSums(is.na(score)) != nrow(score)]
 colnames(training)
 
-# d. Choose variables to removed
+# e. Choose variables to remove
 variables <- c('X', 'raw_timestamp_part_1', 'raw_timestamp_part_2', 'cvtd_timestamp')
 train_df <- training[,!(names(training) %in% variables)]
 test_df <- testing[,!(names(testing) %in% variables)]
 score_df <- score[,!(names(score) %in% variables)]
 
 
-# 3. Preprocess
+## 3. Preprocess
 
 # a. Zero Variance
 nzv <- nearZeroVar(train_df, saveMetrics=TRUE)
@@ -91,7 +91,8 @@ test_df <- predict(preObj,test_df)
 score_df <- predict(preObj,score_df)
 
 
-# 5. Model training
+## 5. Model training
+
 # a. Fit Random Forest model
 fitcontrol <- fitControl <- trainControl(method = 'cv', number = 3, verbose = TRUE)
 tunegrid <- expand.grid(.mtry=20)

@@ -5,13 +5,41 @@ Devices such as Jawbone Up, Nike FuelBand, and Fitbit enable collection of a lar
 
 The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har.
 
+
 ***
 
-### 1. Understanding Data & Feature Selection
-- Words
+### 1. Get Data from CSV & Split Data
+
+Imported data using `read.csv` function.
+
+```{r echo=FALSE, collapse=FALSE}
+library(caret)
+library(pROC)
+library(ggplot2)
+train <- read.csv("C:\\Users\\Swan\\Desktop\\Codes\\pml-training.csv")
+score <- read.csv("C:\\Users\\Swan\\Desktop\\Codes\\pml-testing.csv")
+```
+
+Split data using caret package's `createDataPartition` function. Since this is a small dataset with 19622 records, I used 60% for training and 40% for testing. 
+
+```{r}
+set.seed(695)
+inTrain <- createDataPartition(y=train$classe, p=0.60, list=FALSE)
+training <- train[inTrain,]
+testing <- train[-inTrain,]
+```
+
+### 2. Understand Data & Feature Selection
+
+Used feature plots to understand variables better
+
+```{r}
+featurePlot(x=training[,c(2,8,160)], y=training$classe, plot="pairs")
+```
 
 
-### 2. Pre-processing
+
+### 3. Pre-processing
 - Convert all categorical to numeric
 - Replacing all NAs
 
