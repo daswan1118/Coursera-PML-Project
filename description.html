@@ -133,14 +133,11 @@ $(document).ready(function () {
 <div id="get-data-from-csv-split-data" class="section level3">
 <h3>1. Get Data from CSV &amp; Split Data</h3>
 <p>Imported data using <code>read.csv</code> function.</p>
-<pre><code>## Loading required package: lattice</code></pre>
-<pre><code>## Loading required package: ggplot2</code></pre>
-<pre><code>## Type 'citation(&quot;pROC&quot;)' for a citation.</code></pre>
-<pre><code>## 
-## Attaching package: 'pROC'</code></pre>
-<pre><code>## The following objects are masked from 'package:stats':
-## 
-##     cov, smooth, var</code></pre>
+<pre class="r"><code>library(caret)
+library(pROC)
+library(ggplot2)
+train &lt;- read.csv(&quot;C:\\Users\\Swan\\Desktop\\Codes\\pml-training.csv&quot;)
+score &lt;- read.csv(&quot;C:\\Users\\Swan\\Desktop\\Codes\\pml-testing.csv&quot;)</code></pre>
 <p>Split data using caret package’s <code>createDataPartition</code> function. Since this is a small dataset with 19622 records, I used 60% for training and 40% for testing.</p>
 <pre class="r"><code>set.seed(695)
 inTrain &lt;- createDataPartition(y=train$classe, p=0.60, list=FALSE)

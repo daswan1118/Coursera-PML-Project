@@ -12,7 +12,7 @@ The data for this project come from this source: http://groupware.les.inf.puc-ri
 
 Imported data using `read.csv` function.
 
-```{r echo=FALSE, collapse=FALSE}
+```{r echo=TRUE, message=FALSE}
 library(caret)
 library(pROC)
 library(ggplot2)
@@ -31,8 +31,10 @@ testing <- train[-inTrain,]
 
 ### 2. Understand Data & Feature Selection
 
-Used feature plots to understand variables better
 
+
+
+Used feature plots to understand variables better
 ```{r}
 featurePlot(x=training[,c(2,8,160)], y=training$classe, plot="pairs")
 ```
