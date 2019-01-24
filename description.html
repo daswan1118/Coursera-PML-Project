@@ -138,8 +138,8 @@ $(document).ready(function () {
 <pre class="r"><code>library(caret)
 library(pROC)
 library(ggplot2)
-train &lt;- read.csv(&quot;C:\\Users\\Swan\\Desktop\\Codes\\pml-training.csv&quot;)
-score &lt;- read.csv(&quot;C:\\Users\\Swan\\Desktop\\Codes\\pml-testing.csv&quot;)</code></pre>
+train &lt;- read.csv(&quot;pml-training.csv&quot;)
+score &lt;- read.csv(&quot;pml-testing.csv&quot;)</code></pre>
 <p>Split data using caret package’s <code>createDataPartition</code> function. Since this is a small dataset with 19622 records, I used 60% for training and 40% for testing.</p>
 <pre class="r"><code>set.seed(695)
 inTrain &lt;- createDataPartition(y=train$classe, p=0.60, list=FALSE)
