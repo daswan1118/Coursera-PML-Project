@@ -16,8 +16,8 @@ library(ggplot2)
 ## 1. Get Data from CSV & Split Data
 
 # a. Get data
-train <- read.csv("C:\\Users\\Swan\\Desktop\\Codes\\pml-training.csv")
-score <- read.csv("C:\\Users\\Swan\\Desktop\\Codes\\pml-testing.csv")
+train <- read.csv("pml-training.csv")
+score <- read.csv("pml-testing.csv")
 
 # b. Split data into 60:40
 set.seed(695)
