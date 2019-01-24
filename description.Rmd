@@ -1,6 +1,6 @@
 ---
 title: "Practical Machine Learning Course Project"
-author: "Swan Lee"
+author: "daswan1118"
 date: "November 17, 2018"
 output: html_document
 ---
