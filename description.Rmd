@@ -18,8 +18,8 @@ Imported data using `read.csv` function.
 library(caret)
 library(pROC)
 library(ggplot2)
-train <- read.csv("C:\\Users\\Swan\\Desktop\\Codes\\pml-training.csv")
-score <- read.csv("C:\\Users\\Swan\\Desktop\\Codes\\pml-testing.csv")
+train <- read.csv("pml-training.csv")
+score <- read.csv("pml-testing.csv")
 ```
 
 Split data using caret package's `createDataPartition` function. Since this is a small dataset with 19622 records, I used 60% for training and 40% for testing. 
